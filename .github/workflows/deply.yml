@@ -12,6 +12,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Copy Build ZIP to VPS via SCP
         uses: appleboy/scp-action@v0.1.7
