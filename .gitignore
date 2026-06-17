@@ -1,0 +1,42 @@
+# --- carpetas temporales y de caché de Unity ---
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Mm]emoryCaptures/
+/[Vv]REmulator/
+/[Uu]serSettings/
+
+# --- Configuraciones locales de servicios ---
+.plastic/
+.utmp/
+*~
+*.cs.meta.csproj
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.opendb
+*.VC.db
+.vscode/
+
+# --- Reportes de fallos ---
+CrashReportByCrashUser_*
+
+# --- Builds locales (Ignoramos todo por defecto) ---
+/[Bb]uild/
+/[Bb]uilds/*
+
+# --- EXCEPCIÓN CRÍTICA PARA TU PIPELINE ---
+# Permitimos exclusivamente que la carpeta Builds/Release y sus archivos .zip entren a Git
+!/Builds/Release/
+/Builds/Release/*
+!/Builds/Release/*.zip
+
+# --- Sistemas de builds de plataformas ---
+/Assets/AssetBundles/

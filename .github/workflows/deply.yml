@@ -1,0 +1,49 @@
+name: Deploy Dedicated Server to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Copy Build ZIP to VPS via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: hzsk1469
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22 # Cambia el puerto si tu VPS usa uno personalizado para SSH
+          source: "Builds/Release/*.zip"
+          target: "/home/hzsk1469/server-builds"
+          strip_components: 2 # Evita recrear las carpetas "Builds/Release" en el VPS, dejando el .zip directo
+
+      # Paso extra automatizado para ahorrarte trabajo manual en la terminal
+      - name: Extract Build and Set Permissions
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: hzsk1469
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /home/hzsk1469/server-builds
+            
+            # Verificar si se subió el zip antes de proceder
+            if [ -f *.zip ]; then
+              echo "Descomprimiendo la última build..."
+              unzip -o *.zip
+              rm *.zip
+              
+              # Buscar el ejecutable de Linux y darle permisos automáticamente
+              chmod +x *.x86_64
+              echo "¡Servidor actualizado con éxito y listo para ejecutarse!"
+            else
+              echo "No se encontró ningún archivo .zip en la ruta."
+            fi
