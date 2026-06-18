@@ -1,9 +1,8 @@
-using System;
 using System.Collections;
 using System.Text;
 using Legacy.DedicatedServer.Bootstrap;
 using Legacy.DedicatedServer.Master.Dtos;
-using Legacy.DedicatedServer.Services; // Importamos servicios
+using Legacy.DedicatedServer.Services;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -23,11 +22,18 @@ namespace Legacy.DedicatedServer.Master
         public void StartHeartbeatLoop(ServerResolvedConfig config)
         {
             serverConfig = config;
-            if (string.IsNullOrWhiteSpace(serverConfig.MasterServerUrl))
+
+            ServerServices.Logger.LogWarning(
+                LogCategory.MasterServer,
+                $"Iniciando Heartbeat Manager. Endpoint: {serverConfig.HeartbeatEndpointUrl}"
+            );
+
+            // Verificamos la ruta correcta del Heartbeat
+            if (string.IsNullOrWhiteSpace(serverConfig.HeartbeatEndpointUrl))
             {
                 ServerServices.Logger.LogWarning(
                     LogCategory.MasterServer,
-                    "URL del servidor maestro inválida. Abortando Heartbeats."
+                    "URL de Heartbeat inválida. Abortando Heartbeats."
                 );
                 return;
             }
@@ -38,62 +44,14 @@ namespace Legacy.DedicatedServer.Master
 
         private IEnumerator HeartbeatRoutine()
         {
-            yield return null;
+            // Pequeña pausa antes de iniciar para asegurar que todo el servidor haya cargado
+            yield return new WaitForSecondsRealtime(2f);
+
             while (isReporting)
             {
-                yield return StartCoroutine(SendHeartbeat());
+                yield return StartCoroutine(SendHeartbeatRequest());
                 yield return new WaitForSecondsRealtime(serverConfig.HeartbeatIntervalSeconds);
             }
-        }
-
-        private IEnumerator SendHeartbeat()
-        {
-            int activePlayers =
-                ServerServices.Network != null && ServerServices.Network.IsRunning
-                    ? ServerServices.Network.Server.ClientCount
-                    : 0;
-
-            var payload = new MasterServerRegisterRequest
-            {
-                id = serverConfig.ServerId,
-                nombre = serverConfig.ServerName,
-                ip = serverConfig.PublicIp,
-                puerto = serverConfig.Port,
-                region = serverConfig.Region,
-                jugadores_actuales = Mathf.Max(0, activePlayers),
-                jugadores_max = Mathf.Max(1, activePlayers), // Evitar 0 para max
-                mapa = serverConfig.MapName,
-                version = serverConfig.GameVersion,
-                platform = Application.platform.ToString(),
-            };
-
-            string json = JsonUtility.ToJson(payload);
-            //string url = $"{config.MasterServerUrl.TrimEnd('/')}/servers/register";
-
-            using var request = new UnityWebRequest(
-                serverConfig.RegisterEndpointUrl,
-                UnityWebRequest.kHttpVerbPOST
-            );
-            byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
-
-            request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-            request.downloadHandler = new DownloadHandlerBuffer();
-            request.timeout = 15;
-
-            request.SetRequestHeader("Content-Type", "application/json");
-            request.SetRequestHeader("x-api-key", serverConfig.MasterApiKey);
-
-            yield return request.SendWebRequest();
-
-            if (request.result != UnityWebRequest.Result.Success)
-            {
-                Debug.LogError(
-                    $"[MASTER] Heartbeat ERROR: code={request.responseCode} error={request.error} body={request.downloadHandler.text}"
-                );
-                yield break;
-            }
-
-            //Debug.Log($"[MASTER] Heartbeat OK -> {request.downloadHandler.text}");
         }
 
         private IEnumerator SendHeartbeatRequest()
@@ -103,8 +61,6 @@ namespace Legacy.DedicatedServer.Master
                     ? ServerServices.Network.Server.ClientCount
                     : 0;
 
-            // string json = $"{{\"serverId\":\"{serverConfig.ServerId}\",\"currentPlayers\":{activePlayers},\"status\":\"online\"}}";
-
             var payload = new MasterServerRegisterRequest
             {
                 id = serverConfig.ServerId,
@@ -113,24 +69,27 @@ namespace Legacy.DedicatedServer.Master
                 puerto = serverConfig.Port,
                 region = serverConfig.Region,
                 jugadores_actuales = Mathf.Max(0, activePlayers),
-                jugadores_max = Mathf.Max(1, activePlayers), // Evitar 0 para max
+                jugadores_max = serverConfig.MaxClientCount, // Corregido: Ahora envía el límite real configurado
                 mapa = serverConfig.MapName,
                 version = serverConfig.GameVersion,
                 platform = Application.platform.ToString(),
             };
 
             string json = JsonUtility.ToJson(payload);
-
             byte[] rawBody = Encoding.UTF8.GetBytes(json);
+
+            // Corregido: Apuntando al endpoint de Heartbeat, no al de registro
             using (
                 UnityWebRequest webRequest = new UnityWebRequest(
-                    serverConfig.RegisterEndpointUrl,
+                    serverConfig.HeartbeatEndpointUrl,
                     "POST"
                 )
             )
             {
                 webRequest.uploadHandler = new UploadHandlerRaw(rawBody);
                 webRequest.downloadHandler = new DownloadHandlerBuffer();
+                webRequest.timeout = 15; // Se mantiene tu buena práctica de timeout
+
                 webRequest.SetRequestHeader("Content-Type", "application/json");
                 webRequest.SetRequestHeader("x-api-key", serverConfig.MasterApiKey);
 
@@ -139,16 +98,19 @@ namespace Legacy.DedicatedServer.Master
                 if (webRequest.result == UnityWebRequest.Result.Success)
                 {
                     if (serverConfig.VerboseLogs)
+                    {
                         ServerServices.Logger.LogInfo(
                             LogCategory.MasterServer,
-                            $"Sincronización de Heartbeat exitosa. Jugadores: {activePlayers}"
+                            $"Sincronización de Heartbeat exitosa. Jugadores: {activePlayers}/{serverConfig.MaxClientCount}"
                         );
+                    }
                 }
                 else
                 {
+                    // Loguea tanto el error de red como la respuesta que Node.js haya devuelto (ej. "Invalid Token")
                     ServerServices.Logger.LogError(
                         LogCategory.MasterServer,
-                        $"Falla al enviar Heartbeat: {webRequest.error}"
+                        $"Falla al enviar Heartbeat: {webRequest.error} | Detalle: {webRequest.downloadHandler.text}"
                     );
                 }
             }

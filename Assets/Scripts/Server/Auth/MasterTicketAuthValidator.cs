@@ -2,6 +2,7 @@ using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace Legacy.DedicatedServer.Auth
@@ -12,11 +13,19 @@ namespace Legacy.DedicatedServer.Auth
         Production,
     }
 
+    // Objeto que transporta el resultado de la validación sin usar parámetros 'out' (que bloquean async)
+    public class AuthValidationResult
+    {
+        public bool IsValid;
+        public string AccountId;
+        public string ErrorReason;
+    }
+
     [CreateAssetMenu(
         fileName = "MasterTicketAuthValidator",
         menuName = "DedicatedServer/Auth/MasterTicketAuthValidator"
     )]
-    public class MasterTicketAuthValidator : ServerAuthValidator
+    public class MasterTicketAuthValidator : ScriptableObject
     {
         [Header("Environment")]
         public EnvironmentType currentEnvironment = EnvironmentType.Development;
@@ -29,6 +38,7 @@ namespace Legacy.DedicatedServer.Auth
         [Header("API Paths")]
         public string registerPath = "api/register";
         public string consumeTicketPath = "join/consume";
+        public string heartbeatPath = "api/heartbeat";
 
         [Header("Security Keys")]
         public string devApiKey = "test_key_123";
@@ -55,7 +65,9 @@ namespace Legacy.DedicatedServer.Auth
 
         public string GetFullRegisterUrl() => CombineUrl(GetActiveBaseUrl(), registerPath);
 
-        private string GetFullConsumeUrl() => CombineUrl(GetActiveBaseUrl(), consumeTicketPath);
+        public string GetFullConsumeUrl() => CombineUrl(GetActiveBaseUrl(), consumeTicketPath);
+
+        public string GetFullHeartbeatUrl() => CombineUrl(GetActiveBaseUrl(), heartbeatPath);
 
         #region Serialización JSON
         [Serializable]
@@ -83,68 +95,65 @@ namespace Legacy.DedicatedServer.Auth
         }
         #endregion
 
-        // --- Lógica de Validación ---
-        public override bool TryValidate(
-            string token,
-            out string accountId,
-            out string displayName,
-            out string failureReason
-        )
+        // --- Lógica de Validación 100% Asíncrona (NO BLOQUEA EL SERVIDOR) ---
+        public async Task<AuthValidationResult> ValidateTicketAsync(string token)
         {
-            accountId = string.Empty;
-            displayName = string.Empty;
-            failureReason = string.Empty;
-
             if (string.IsNullOrWhiteSpace(token))
-            {
-                failureReason = "Join ticket vacío.";
-                return false;
-            }
+                return new AuthValidationResult
+                {
+                    IsValid = false,
+                    ErrorReason = "Join ticket vacío.",
+                };
 
             try
             {
-                ConsumeTicketResponse response = ConsumeTicket(token.Trim());
+                ConsumeTicketResponse response = await ConsumeTicketAsync(token.Trim());
 
                 if (response == null || !response.ok)
-                {
-                    failureReason = response?.error ?? "El master server rechazó el ticket.";
-                    return false;
-                }
+                    return new AuthValidationResult
+                    {
+                        IsValid = false,
+                        ErrorReason = response?.error ?? "El master server rechazó el ticket.",
+                    };
 
                 if (response.player == null || string.IsNullOrWhiteSpace(response.player.uid))
-                {
-                    failureReason = "El master server no devolvió un UID válido.";
-                    return false;
-                }
+                    return new AuthValidationResult
+                    {
+                        IsValid = false,
+                        ErrorReason = "El master server no devolvió un UID válido.",
+                    };
 
-                accountId = response.player.uid.Trim();
-                displayName = accountId;
-                return true;
+                return new AuthValidationResult
+                {
+                    IsValid = true,
+                    AccountId = response.player.uid.Trim(),
+                };
             }
             catch (Exception ex)
             {
-                failureReason = $"Error validando ticket: {ex.Message}";
-                return false;
+                return new AuthValidationResult
+                {
+                    IsValid = false,
+                    ErrorReason = $"Error de red: {ex.Message}",
+                };
             }
         }
 
-        private ConsumeTicketResponse ConsumeTicket(string ticketId)
+        private async Task<ConsumeTicketResponse> ConsumeTicketAsync(string ticketId)
         {
             string url = GetFullConsumeUrl();
-            ConsumeTicketRequest payload = new ConsumeTicketRequest
-            {
-                ticketId = ticketId,
-                serverId = serverId,
-            };
-            string json = JsonUtility.ToJson(payload);
+            string json = JsonUtility.ToJson(
+                new ConsumeTicketRequest { ticketId = ticketId, serverId = serverId }
+            );
 
             using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, url);
             request.Headers.Add("x-api-key", GetActiveApiKey());
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             request.Content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            using HttpResponseMessage response = Http.SendAsync(request).GetAwaiter().GetResult();
-            string body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            // await asegura que el framerate de Unity no se congele esperando a Node.js
+            using HttpResponseMessage response = await Http.SendAsync(request);
+            string body = await response.Content.ReadAsStringAsync();
 
             if (string.IsNullOrWhiteSpace(body))
                 return new ConsumeTicketResponse { ok = false, error = "Respuesta vacía." };
@@ -160,13 +169,7 @@ namespace Legacy.DedicatedServer.Auth
             return parsed;
         }
 
-        private static string CombineUrl(string baseUrl, string path)
-        {
-            if (string.IsNullOrWhiteSpace(baseUrl))
-                return path ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(path))
-                return baseUrl;
-            return $"{baseUrl.TrimEnd('/')}/{path.TrimStart('/')}";
-        }
+        private static string CombineUrl(string baseUrl, string path) =>
+            $"{baseUrl.TrimEnd('/')}/{path.TrimStart('/')}";
     }
 }

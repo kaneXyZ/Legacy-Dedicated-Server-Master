@@ -1,5 +1,13 @@
 {
   "dependencies": {
+    "com.legacy.shared": {
+      "version": "file:C:/Users/Usuario/Documents/legacy.shared",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.unity.modules.ui": "1.0.0"
+      }
+    },
     "com.unity.collab-proxy": {
       "version": "2.12.4",
       "depth": 0,

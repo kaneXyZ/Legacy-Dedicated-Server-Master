@@ -37,6 +37,7 @@ namespace Legacy.DedicatedServer.Bootstrap
             {
                 resolved.ServerId = authConfig.serverId;
                 resolved.MasterServerUrl = authConfig.GetActiveBaseUrl();
+                resolved.HeartbeatEndpointUrl = authConfig.GetFullHeartbeatUrl();
                 resolved.RegisterEndpointUrl = authConfig.GetFullRegisterUrl();
                 resolved.MasterApiKey = authConfig.GetActiveApiKey();
             }

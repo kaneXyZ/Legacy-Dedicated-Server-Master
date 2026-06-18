@@ -15,8 +15,9 @@ MonoBehaviour:
   currentEnvironment: 1
   devMasterServerBaseUrl: http://localhost:3000
   prodMasterServerBaseUrl: https://masterserverlegacy-896525629469.southamerica-west1.run.app
-  registerPath: /servers/register
-  consumeTicketPath: /join/ticket
+  registerPath: servers/register
+  consumeTicketPath: join/join/consume
+  heartbeatPath: servers/register
   devApiKey: 123456789lknkjk
   prodApiKey: 123456789lknkjk
-  serverId: editor-dev-cl1
+  serverId: legacy-dev-sa-1

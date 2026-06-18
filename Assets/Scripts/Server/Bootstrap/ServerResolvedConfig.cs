@@ -26,6 +26,7 @@ namespace Legacy.DedicatedServer.Bootstrap
 
         // --- Master Server (Extraídos de MasterTicketAuthValidator) ---
         public string MasterServerUrl;
+        public string HeartbeatEndpointUrl;
         public string RegisterEndpointUrl;
         public string MasterApiKey;
         public float HeartbeatIntervalSeconds = 15f;
