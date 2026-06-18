@@ -142,6 +142,11 @@ namespace Legacy.DedicatedServer.Auth
         private async Task<ConsumeTicketResponse> ConsumeTicketAsync(string ticketId)
         {
             string url = GetFullConsumeUrl();
+            // --- DIAGNÓSTICO ---
+            Debug.Log($"[AUTH] Intentando validar ticket: {ticketId}");
+            Debug.Log($"[AUTH] Servidor ID enviado al Master: '{serverId}'");
+            Debug.Log($"[AUTH] URL del Master: {url}");
+            // -------------------
             string json = JsonUtility.ToJson(
                 new ConsumeTicketRequest { ticketId = ticketId, serverId = serverId }
             );

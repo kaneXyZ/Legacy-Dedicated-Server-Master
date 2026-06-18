@@ -20,4 +20,4 @@ MonoBehaviour:
   heartbeatPath: servers/register
   devApiKey: 123456789lknkjk
   prodApiKey: 123456789lknkjk
-  serverId: legacy-dev-sa-1
+  serverId: legacy-cl-1
