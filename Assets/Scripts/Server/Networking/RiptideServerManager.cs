@@ -37,7 +37,7 @@ namespace Legacy.DedicatedServer.Networking
 
             ServerServices.Logger.LogInfo(
                 LogCategory.Network,
-                $"Servidor Riptide encendido en puerto: {config.Port}. Max Clientes: {config.MaxClientCount}"
+                $"Servidor Riptide encendido en puerto: {config.Port}. Max Clientes: {config.MaxClientCount} id: {config.ServerId}"
             );
         }
 
