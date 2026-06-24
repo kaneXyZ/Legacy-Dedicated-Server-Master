@@ -11,6 +11,7 @@ namespace Legacy.DedicatedServer.Services
         MasterServer,
         Gameplay,
         Chat,
+        Player,
     }
 
     public class ServerLogger
@@ -82,6 +83,7 @@ namespace Legacy.DedicatedServer.Services
                 LogCategory.MasterServer => ANSI_YELLOW,
                 LogCategory.Gameplay => ANSI_GREEN,
                 LogCategory.Chat => ANSI_YELLOW,
+                LogCategory.Player => ANSI_GREEN,
                 _ => ANSI_RESET,
             };
         }
