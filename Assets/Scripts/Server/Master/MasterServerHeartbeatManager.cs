@@ -97,13 +97,16 @@ namespace Legacy.DedicatedServer.Master
 
                 if (webRequest.result == UnityWebRequest.Result.Success)
                 {
-                    if (serverConfig.VerboseLogs)
-                    {
-                        ServerServices.Logger.LogInfo(
-                            LogCategory.MasterServer,
-                            $"Sincronización de Heartbeat exitosa. Jugadores: {activePlayers}/{serverConfig.MaxClientCount}"
-                        );
-                    }
+                    /**
+                                        if (serverConfig.VerboseLogs)
+                                        {
+                                            ServerServices.Logger.LogInfo(
+                                                LogCategory.MasterServer,
+                                                $"Sincronización de Heartbeat exitosa. Jugadores: {activePlayers}/{serverConfig.MaxClientCount}"
+                                            );
+                                            
+                                            
+                                        }*/
                 }
                 else
                 {

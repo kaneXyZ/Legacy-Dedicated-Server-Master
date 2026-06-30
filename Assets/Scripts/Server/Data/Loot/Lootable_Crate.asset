@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9161c8e4e0b44848b9a6f5ab74f100e, type: 3}
+  m_Name: Lootable_Crate
+  m_EditorClassIdentifier: 
+  minItemsToGenerate: 2
+  maxItemsToGenerate: 7
+  possibleLoot:
+  - item: {fileID: 11400000, guid: 6e7270b128836fc4ea9784f5ceffebdf, type: 2}
+    minAmount: 1
+    maxAmount: 250
+    dropChance: 20
+  - item: {fileID: 11400000, guid: 182e6958a6f352a4fa25acd1634e7e2f, type: 2}
+    minAmount: 1
+    maxAmount: 1
+    dropChance: 80
